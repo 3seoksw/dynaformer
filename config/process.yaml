@@ -1,0 +1,32 @@
+defaults:
+  - method: dynaformer
+
+current_type: constant_loading #
+data_dir: data/nsc7hnsg4s-2/
+#num_w: 24 # Number of workers
+num_w: 5
+loss: rmse
+patience_lr_plateau: 100
+gpu: 1
+
+vp: 0.15 # Validation samples
+epochs: 10000
+
+out_dimension: 500
+using_current: True
+randomized_context: True
+
+method:
+  batch_size: 12
+
+# About the data
+min_init: 0
+max_init: 50
+min_length: 200
+max_length: 200 # Make sure
+
+model_checkpoint: False #Resume training
+
+hydra:
+  sweep:
+    dir: multirunv2/${method.name}_${current_type}/${now:%Y-%m-%d}/${now:%H-%M-%S}

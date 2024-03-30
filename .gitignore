@@ -1,0 +1,9 @@
+.DS_Store
+pyrightconfig.json
+test.py
+
+data/*
+.idea/
+__pycache__/
+lightning_logs/
+test/
