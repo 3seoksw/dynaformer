@@ -13,6 +13,7 @@ class BaseModel(LightningModule):
         self.validation_step_outputs = []
         self.test_step_outputs = []
         self.tmp = []
+        self.count = 0
 
     def training_step(self, batch, batch_idx):
         current, voltage, x, y, t = batch
@@ -20,16 +21,14 @@ class BaseModel(LightningModule):
         output = self.forward(context, current)
         zero_mask = voltage != 0
 
-        rmse_loss = torch.sqrt(
-            self.loss_func(output[zero_mask].squeeze(), voltage[zero_mask].squeeze())
-        )
-        self.log("train_loss_rmse", rmse_loss, on_step=True, on_epoch=True)
+        loss = self.loss_func(output[zero_mask].squeeze(), voltage[zero_mask].squeeze())
 
         if self.loss == "rmse":
-            loss = rmse_loss
+            rmse_loss = loss
         else:
             raise KeyError("Loss function not recognized")
 
+        # self.log("train_loss_rmse", rmse_loss, on_step=True, on_epoch=True)
         self.log("train_loss", loss, on_step=True, on_epoch=True)
         self.training_step_outputs.append(loss)
         self.tmp.append((output, voltage))
@@ -38,25 +37,43 @@ class BaseModel(LightningModule):
 
     def on_train_epoch_end(self):
         epoch_avg = torch.stack(self.training_step_outputs).mean()
-        self.log("training_epoch_end", epoch_avg)
+        self.log("train_epoch_end", epoch_avg)
         self.training_step_outputs.clear()
 
-        output, voltage = self.tmp[-1]
-        output = output.squeeze()
-        output = output.cpu().detach().numpy()
-        voltage = voltage.cpu().detach().numpy()
-        output = output[-1, :]
-        voltage = voltage[-1, :]
-        cut_off_idx = np.where(np.array(voltage) <= 0)[0][0]
-        output = output[:cut_off_idx]
-        voltage = voltage[:cut_off_idx]
-        print(output.shape, voltage.shape)
-        plt.plot(output, "r--", label="predicted traj")
-        plt.plot(voltage, "b-", label="actual traj")
-        plt.legend()
-        plt.show()
+        if self.count % 500 == 0:
+            output, voltage = self.tmp[-1]
+            output = output.squeeze()
+            output = output.cpu().detach().numpy()
+            voltage = voltage.cpu().detach().numpy()
+            output = output[-1, :]
+            voltage = voltage[-1, :]
 
-        print(f"{self.global_step} epoch finished")
+            # HACK: `cut_off_list` and `cut_off_idx` is to locate the index 
+            # where zero padding is applied
+            cut_off_list = np.where(np.array(voltage) <= 0)[0]
+
+            # no padding found: able to use the original
+            if len(cut_off_list) == 0:
+                cut_off_idx = len(voltage)
+            else:
+                cut_off_idx = cut_off_list[0]
+
+            output = output[:cut_off_idx]
+            voltage = voltage[:cut_off_idx]
+
+            plt.title(self.global_step)
+            plt.xlabel("Time (4s)")
+            plt.ylabel("Voltage (V)")
+            plt.plot(output, "r--", label="predicted traj")
+            plt.plot(voltage, "b-", label="actual traj")
+            plt.legend()
+
+            plt.savefig(f"{self.global_step}-pred.png")
+            plt.close()
+
+        self.count += 1
+
+        self.tmp.clear()
 
     def validation_step(self, batch, batch_idx):
         current, voltage, x, y, t = batch
@@ -74,7 +91,7 @@ class BaseModel(LightningModule):
 
     def on_validation_epoch_end(self):
         epoch_average = torch.stack(self.validation_step_outputs).mean()
-        self.log("validation_loss", epoch_average)
+        self.log("validation_epoch_end", epoch_average)
         self.validation_step_outputs.clear()
 
     def test_step(self, batch, batch_idx):
