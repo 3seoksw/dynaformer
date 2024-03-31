@@ -73,7 +73,7 @@ class BatteryDataModule(LightningDataModule):
         data_dir,
         type,
         dataset_name="HUST",
-        batch_size=256,
+        batch_size=64,  # In the original code, 12 or 64
         num_w=8,
     ):
         super().__init__()
