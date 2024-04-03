@@ -22,6 +22,7 @@ class BaseModel(LightningModule):
         zero_mask = voltage != 0
 
         loss = self.loss_func(output[zero_mask].squeeze(), voltage[zero_mask].squeeze())
+        loss = torch.sqrt(loss)
 
         if self.loss == "rmse":
             rmse_loss = loss
@@ -29,7 +30,7 @@ class BaseModel(LightningModule):
             raise KeyError("Loss function not recognized")
 
         # self.log("train_loss_rmse", rmse_loss, on_step=True, on_epoch=True)
-        self.log("train_loss", loss, on_step=True, on_epoch=True)
+        self.log("train_loss", loss, on_step=True)
         self.training_step_outputs.append(loss)
         self.tmp.append((output, voltage))
 
@@ -40,7 +41,7 @@ class BaseModel(LightningModule):
         self.log("train_epoch_end", epoch_avg)
         self.training_step_outputs.clear()
 
-        if self.count % 500 == 0:
+        if self.count % 100 == 0:
             output, voltage = self.tmp[-1]
             output = output.squeeze()
             output = output.cpu().detach().numpy()
@@ -82,7 +83,7 @@ class BaseModel(LightningModule):
         zero_mask = voltage != 0
 
         loss = self.loss_func(output[zero_mask].squeeze(), voltage[zero_mask].squeeze())
-        self.log("validation_loss", loss, on_step=True, on_epoch=True)
+        self.log("validation_loss", loss, on_step=True)
         self.validation_step_outputs.append(loss)
 
         return loss
@@ -113,6 +114,8 @@ class BaseModel(LightningModule):
         )
         return {
             "optimizer": opt,
-            "lr_scheduler": lr_schedulers,
-            "monitor": "train_loss",
+            "lr_scheduler": {
+                "scheduler": lr_schedulers,
+                "monitor": "train_loss"
+            }
         }
