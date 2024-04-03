@@ -1,5 +1,4 @@
 import os
-import json
 import torch
 import numpy as np
 
@@ -53,40 +52,28 @@ def collate_fn_padd(batch):
     return padded_current, padded_voltage, padded_xx, padded_yy, padded_tt
 
 
-def load_dataset(data_dir, split=True):
-    print(f"Opening {data_dir}")
-    assert os.path.exists(data_dir / "metadata.json")
-    with open(os.path.join(data_dir, "metadata.json"), "rb") as f:
-        metadata = json.load(f)
-
-    return metadata
-    # if split:
-    #     train_metadata = {}
-    #     train_metadata["train_times"] =
-    # else:
-    #     train_metadata = {}
-
-
 class BatteryDataModule(LightningDataModule):
     def __init__(
         self,
-        data_dir,
-        type,
+        discharge_type="single",
+        data_dir="./data",
         dataset_name="HUST",
         batch_size=64,  # In the original code, 12 or 64
         num_w=8,
     ):
         super().__init__()
-        self.data_dir = data_dir
-        self.type = type
+
+        self.discharge_type = discharge_type
+
+        self.dataset_name = dataset_name
+        self.data_dir = os.path.join(data_dir, self.dataset_name)
 
         self.batch_size = batch_size
         self.num_w = num_w
-        self.dataset_name = dataset_name
 
         if self.dataset_name == "HUST":
             self.training_dataset = HUSTBatteryDataset(
-                type=self.type, data_dir=self.data_dir, mode="train"
+                discharge_type=self.discharge_type, data_dir=self.data_dir, mode="train"
             )
 
             self.validation_dataset = self.training_dataset

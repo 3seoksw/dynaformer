@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 
 class HUSTBatteryDataset(BatteryDataset):
-    def __init__(self, type: str, data_dir: str, mode: str):
+    def __init__(self, discharge_type: str, data_dir: str, mode: str):
         super().__init__(data_dir)
 
         self.length = 0
@@ -18,25 +18,24 @@ class HUSTBatteryDataset(BatteryDataset):
         assert os.path.exists(self.data_dir)
 
         self.discharges = []  # NOTE: for "single" type
-        self.batteries = []  # NOTE: for "full" type
-        # FIXME: name of the `self.batteries`
+        self.full_discharges = []  # NOTE: for "full" type
 
         self.mode = mode  # NOTE: mode = { "train", "validation", "test" }
-        self.type = type
+        self.discharge_type = discharge_type
 
-        if self.type == "single":
+        if self.discharge_type == "single":
             self.process_single()
-        elif self.type == "full":
+        elif self.discharge_type == "full":
             self.process_full()
         else:
-            raise Exception(f"No such type available: {self.type}")
+            raise Exception(f"No such type available: {self.discharge_type}")
 
     def __len__(self):
         return len(self.discharges)
 
-    # TODO: finish `__getitem__` function: `self.type == "full"`
+    # TODO: finish `__getitem__` function: `self.discharge_type == "full"`
     def __getitem__(self, idx):
-        if self.type == "single":
+        if self.discharge_type == "single":
             cur_discharge = self.discharges[idx]
             status, current, voltage, capacity, time = cur_discharge
 
@@ -87,15 +86,41 @@ class HUSTBatteryDataset(BatteryDataset):
 
             return datapoint
 
-        elif self.type == "full":
-            return self.batteries[idx]  # FIXME: name of the self.batteries
+        elif self.discharge_type == "full":
+            cur_discharge = self.full_discharges[idx]
+            status, current, voltage, capacity, time = cur_discharge
+
+            context_len = 90
+            time_start = time[0]
+
+            max_context_start_idx = np.where(
+                np.array(time) >= time_start + context_len
+            )[0][0]
+            context_start_idx = np.random.randint(0, max_context_start_idx)
+            # Time interval of HUST dataset is approximately 4sec.
+            # context_start_idx = np.random.randint(0, 90 // 4)
+            time_start = time[context_start_idx]
+
+            # NOTE: Fix context length to 100 (equiv. to 400sec.):
+            # WARN: Since the length of HUST dataset is small, fix it to 100sec.
+            context_end_idx = np.where(np.array(time) >= time_start + 100)[0][0]
+            # context_end_idx = context_start_idx + 100 // 4
+
+            # NOTE: Slice off the data when the battery discharges (3.2 V)
+            cut_off_list = np.where(np.array(voltage) <= 3.2)[0]
+
+            # TODO: set context length (90sec for single discharge process)
+
+            datapoint = {}
+
+            return self.full_discharges[idx]
 
     def process_single(self):
         data_dir = Path(self.data_dir)
         cell_files = list(data_dir.glob("*.pkl"))
         cell_files = tqdm(
             cell_files,
-            desc="Processing HUST dataset",
+            desc="Processing HUST dataset ('single' mode)",
             bar_format="{l_bar}{bar:10}{r_bar}{bar:-10b}",
         )
         for cell_file in cell_files:
@@ -171,7 +196,37 @@ class HUSTBatteryDataset(BatteryDataset):
                     discharge = (status, current, voltage, capacity, time)
                     self.discharges.append(discharge)
 
+            cf.close()
+
     # TODO:
     def process_full(self):
-        # cell_files = list(self.data_dir.glob("*.pkl"))
+        """
+        Process full trajectory rather than single discharge trajectory.
+        See `process_single` for comparison.
+        """
+        data_dir = Path(self.data_dir)
+        cell_files = list(data_dir.glob(".pkl"))
+        cell_files = tqdm(
+            cell_files,
+            desc="Processing HUST dataset ('full' mode)",
+            bar_format="{l_bar}{bar:10}{r_bar}{bar:-10b}",
+        )
+        for cell_file in cell_files:
+            cell_id = cell_file.stem
+            cell_name = f"HUST_{cell_id}"
+
+            with open(cell_file, "rb") as cf:
+                cell_data = pickle.load(cf)[cell_id]["data"]
+
+            status = cell_data["Status"]
+            current = cell_data["Current (mA)"]
+            voltage = cell_data["Voltage (V)"]
+            capacity = cell_data["Capacity (mAh)"]
+            time = cell_data["Time (s)"]
+
+            full_discharge = (status, current, voltage, capacity, time)
+            self.full_discharges.append(full_discharge)
+
+            cf.close()
+
         return False

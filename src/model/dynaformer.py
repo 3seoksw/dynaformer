@@ -28,7 +28,7 @@ class Dynaformer(BaseModel):
         input_dim=2,
         output_dim=1,
         hidden_dim=128,
-        lr=1e-4,  # In the original code, 1e-4
+        lr=1e-5,  # In the original code, 1e-4
         patience_lr_plateau=100,
         loss="rmse",
     ):

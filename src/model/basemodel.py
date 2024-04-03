@@ -48,7 +48,7 @@ class BaseModel(LightningModule):
             output = output[-1, :]
             voltage = voltage[-1, :]
 
-            # HACK: `cut_off_list` and `cut_off_idx` is to locate the index 
+            # HACK: `cut_off_list` and `cut_off_idx` is to locate the index
             # where zero padding is applied
             cut_off_list = np.where(np.array(voltage) <= 0)[0]
 
@@ -80,8 +80,6 @@ class BaseModel(LightningModule):
         context = torch.cat([x.unsqueeze(2), y.unsqueeze(2), t.unsqueeze(2)], dim=2)
         output = self.forward(context, current)
         zero_mask = voltage != 0
-
-        # TODO: currently no metadata available
 
         loss = self.loss_func(output[zero_mask].squeeze(), voltage[zero_mask].squeeze())
         self.log("validation_loss", loss, on_step=True, on_epoch=True)
