@@ -56,7 +56,7 @@ class Dynaformer(BaseModel):
         self.step_up_query = nn.Sequential(nn.Linear(self.chunks, hidden_dim))
         self.last_query = nn.Linear(hidden_dim // 2, hidden_dim)
         self.positional_embedding_query = nn.Embedding(
-            num_embeddings=450, embedding_dim=self.hidden_dim
+            num_embeddings=250, embedding_dim=self.hidden_dim
         )
 
         # Decoder
