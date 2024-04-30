@@ -14,7 +14,7 @@ class HUSTPreprocessor(BasePreprocessor):
         self.length = 0
         self.discharges = []
         self.full_discharges = []
-        
+
         if discharge_type == "single":
             self.preprocess_single()
         elif discharge_type == "full":
@@ -22,19 +22,16 @@ class HUSTPreprocessor(BasePreprocessor):
         else:
             raise Exception(f"No such discharge type available: {discharge_type}")
 
-
     def __len__(self):
         return len(self.discharges)
-
 
     def save_to_file(self):
         dir_path = os.path.join(self.data_dir, self.discharge_type)
         os.makedirs(dir_path, exist_ok=True)
 
         for i, discharge in enumerate(self.discharges):
-            with open(f"{dir_path}/discharge_{i}.pkl", "wb") as f:
+            with open(f"{dir_path}/HUST_{i}.pkl", "wb") as f:
                 pickle.dump(discharge, f)
-
 
     def preprocess_single(self):
         """HUST dataset"""
@@ -80,7 +77,6 @@ class HUSTPreprocessor(BasePreprocessor):
                     # if next_idx - idx <= 90 // 4 + 100:
                     #     continue
 
-                    status = cycle_data["Status"].iloc[idx:next_idx].values.tolist()
                     current = (
                         cycle_data["Current (mA)"].iloc[idx:next_idx].values.tolist()
                     )
@@ -116,7 +112,7 @@ class HUSTPreprocessor(BasePreprocessor):
 
                     self.length += len(time)
 
-                    discharge = (status, current, voltage, capacity, time)
+                    discharge = (current, voltage, capacity, time)
                     self.discharges.append(discharge)
 
             cf.close()
