@@ -110,13 +110,24 @@ def interpolate_data(discharge: tuple, length=4000):
     interp_factor = data_len / length
 
     interp_discharge = []
-    for data in discharge:
+    discharge_no_time = (capacity, voltage, current)
+    for data in discharge_no_time:
         interp_data = np.interp(
             np.arange(0, data_len, interp_factor),
             np.arange(data_len),
             data,
         )
         interp_discharge.append(interp_data)
+
+    interp_time = np.interp(
+        np.arange(0, data_len, interp_factor),
+        np.arange(data_len),
+        time,
+    )
+    for i in range(len(interp_time)):
+        interp_time[i] = i
+
+    interp_discharge.append(interp_time)
 
     return interp_discharge
 

@@ -63,8 +63,8 @@ class BatteryDataset(Dataset):
             # WARN: Since the length of HUST dataset is small, fix it to 100sec.
             if self.dataset_name == "HUST":
                 context_end_idx = np.where(np.array(time) >= time_start + 100)[0][0]
-            else:
-                context_end_idx = np.where(np.array(time) >= time_start + 400)[0][0]
+            elif self.dataset_name == "RWTH":
+                context_end_idx = 400
 
             # NOTE: Slice off the data when the battery discharges (3.2 V)
             cut_off_list = np.where(np.array(voltage) <= 3.2)[0]

@@ -5,9 +5,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 from pytorch_lightning import LightningDataModule
 
-from .battery_dataset import BatteryDataset
-from .HUST_dataset import HUSTBatteryDataset
-from .RWTH_dataset import RWTHBatteryDataset
+from data_module.battery_dataset import BatteryDataset
 
 
 def collate_fn_padd(batch):
