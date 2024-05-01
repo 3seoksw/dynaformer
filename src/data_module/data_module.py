@@ -7,6 +7,7 @@ from pytorch_lightning import LightningDataModule
 
 from .battery_dataset import BatteryDataset
 from .HUST_dataset import HUSTBatteryDataset
+from .RWTH_dataset import RWTHBatteryDataset
 
 
 def collate_fn_padd(batch):
@@ -71,19 +72,18 @@ class BatteryDataModule(LightningDataModule):
         self.batch_size = batch_size
         self.num_w = num_w
 
-        if self.dataset_name == "HUST":
-            self.training_dataset = HUSTBatteryDataset(
-                discharge_type=self.discharge_type, data_dir=self.data_dir, mode="train"
-            )
-
-            self.validation_dataset = self.training_dataset
-            self.validation_dataset.mode = "validation"
-
-            self.test_dataset = self.training_dataset
-            self.test_dataset.mode = "test"
-
-        else:  # TODO: add more dataset compatibility
-            self.training_dataset = BatteryDataset(data_dir=self.data_dir)
+        self.training_dataset = BatteryDataset(
+            data_dir=self.data_dir,
+            mode="train",
+            discharge_type=self.discharge_type,
+            dataset_name=self.dataset_name,
+        )
+        self.validation_dataset = BatteryDataset(
+            data_dir=self.data_dir,
+            mode="validation",
+            discharge_type=self.discharge_type,
+            dataset_name=self.dataset_name,
+        )
 
     def prepare_data(self):
         """Prepare the dataset trying to use"""
