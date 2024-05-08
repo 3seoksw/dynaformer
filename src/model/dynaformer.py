@@ -49,9 +49,7 @@ class Dynaformer(BaseModel):
         self.position_embedding_context = nn.Embedding(1000, self.hidden_dim)
 
         # Encoder
-        encoder_layer = nn.TransformerEncoderLayer(
-            d_model=hidden_dim, nhead=8, batch_first=True
-        )
+        encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=8)
         self.encoder = nn.TransformerEncoder(encoder_layer=encoder_layer, num_layers=6)
 
         # Pre-decoder
@@ -87,7 +85,7 @@ class Dynaformer(BaseModel):
         # Encoding
         encoder = pre_encoder + positional_encoding
         encoder = self.encoder(
-            encoder, src_key_padding_mask=src_padding_mask.bool()
+            encoder.permute(1, 0, 2), src_key_padding_mask=src_padding_mask.bool()
         )  # NOTE: PyTorch encoder expects an input to be shaped as [length, batch_size, features]
 
         return encoder, src_padding_mask
