@@ -67,16 +67,20 @@ class BatteryDataset(Dataset):
                 context_end_idx = 400
 
             # NOTE: Slice off the data when the battery discharges (3.2 V)
-            cut_off_list = np.where(np.array(voltage) <= 3.2)[0]
-            if len(cut_off_list) == 0:
-                cut_off_idx = len(voltage)
-            else:
-                cut_off_idx = cut_off_list[0]
+            # cut_off_list = np.where(np.array(voltage) <= 3.2)[0]
+            # if len(cut_off_list) == 0:
+            #     cut_off_idx = len(voltage)
+            # else:
+            #     cut_off_idx = cut_off_list[0]
 
-            full_current = current[context_start_idx:cut_off_idx]
-            full_voltage = voltage[context_start_idx:cut_off_idx]
-            full_capacity = capacity[context_start_idx:cut_off_idx]
-            full_time = time[context_start_idx:cut_off_idx]
+            # full_current = current[context_start_idx:cut_off_idx]
+            # full_voltage = voltage[context_start_idx:cut_off_idx]
+            # full_capacity = capacity[context_start_idx:cut_off_idx]
+            # full_time = time[context_start_idx:cut_off_idx]
+            full_current = current[context_start_idx:]
+            full_voltage = voltage[context_start_idx:]
+            full_capacity = capacity[context_start_idx:]
+            full_time = time[context_start_idx:]
 
             # status = status[context_start_idx:context_end_idx]
             context_current = current[context_start_idx:context_end_idx]
@@ -95,6 +99,7 @@ class BatteryDataset(Dataset):
             datapoint["current"] = full_current
             datapoint["voltage"] = full_voltage
             datapoint["time"] = full_time
+            datapoint["capacity"] = full_capacity
 
             return datapoint
 
