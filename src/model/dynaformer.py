@@ -132,4 +132,4 @@ class Dynaformer(BaseModel):
 
         # Remove the padding
         out = out[:, : x.shape[1]]
-        return out.unsqueeze(2)
+        return out.unsqueeze(2), encoder

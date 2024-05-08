@@ -35,19 +35,41 @@ class BatteryDataset(Dataset):
             elif self.dataset_name == "RWTH":
                 preprocessor = RWTHPreprocessor(discharge_type, data_dir)
                 preprocessor.save_to_file()
+            elif self.dataset_name == "ALL":
+                preprocessor = HUSTPreprocessor(discharge_type, data_dir)
+                preprocessor.save_to_file()
+                preprocessor = RWTHPreprocessor(discharge_type, data_dir)
+                preprocessor.save_to_file()
             else:
                 preprocessor = None
         self.data_dir = preprocessed_data_dir
+        if self.dataset_name == "ALL":
+            self.data_dir = "data/"
 
     def __len__(self) -> int:
         """returns size of the dataset"""
+        if self.dataset_name == "ALL":
+            length = 0
+            dsets = ["HUST", "RWTH"]
+            for dset in dsets:
+                path = os.path.join(self.data_dir, dset)
+                path = Path(path)
+                files = list(path.glob("*.pkl"))
+                length += len(files)
+
+            return length
+
         files = list(Path(self.data_dir).glob("*.pkl"))
         return len(files)
 
     def __getitem__(self, idx):
         """returns i-th sample from the dataset such that `dataset[i]`."""
-        with open(f"{self.data_dir}/{self.dataset_name}_{idx}.pkl", "rb") as f:
-            discharge = pickle.load(f)
+        if self.dataset_name == "ALL":
+            discharge, cur_dset = self.__getdischarge__(idx)
+        else:
+            cur_dset = self.dataset_name
+            with open(f"{self.data_dir}/{self.dataset_name}_{idx}.pkl", "rb") as f:
+                discharge = pickle.load(f)
 
         current, voltage, capacity, time = discharge
 
@@ -66,17 +88,18 @@ class BatteryDataset(Dataset):
             elif self.dataset_name == "RWTH":
                 context_end_idx = 400
 
+            # WARN: DEPRECATED
             # NOTE: Slice off the data when the battery discharges (3.2 V)
             # cut_off_list = np.where(np.array(voltage) <= 3.2)[0]
             # if len(cut_off_list) == 0:
             #     cut_off_idx = len(voltage)
             # else:
             #     cut_off_idx = cut_off_list[0]
-
             # full_current = current[context_start_idx:cut_off_idx]
             # full_voltage = voltage[context_start_idx:cut_off_idx]
             # full_capacity = capacity[context_start_idx:cut_off_idx]
             # full_time = time[context_start_idx:cut_off_idx]
+
             full_current = current[context_start_idx:]
             full_voltage = voltage[context_start_idx:]
             full_capacity = capacity[context_start_idx:]
@@ -100,8 +123,29 @@ class BatteryDataset(Dataset):
             datapoint["voltage"] = full_voltage
             datapoint["time"] = full_time
             datapoint["capacity"] = full_capacity
+            datapoint["metadata"] = {"dataset": cur_dset}
 
             return datapoint
 
         elif self.discharge_type == "full":
             return None
+
+    def __getdischarge__(self, idx):
+        length = 0
+        dsets = {"HUST": 0, "RWTH": 0}
+        cur_dset = ""
+        for dset in dsets.keys():
+            cur_dset = dset
+            path = os.path.join(self.data_dir, dset)
+            path = Path(path)
+            files = list(path.glob("*.pkl"))
+            length += len(files)
+            dsets[dset] = length
+
+            if idx <= length:
+                break
+
+        with open(f"{self.data_dir}/{cur_dset}/single/{cur_dset}_{idx}.pkl", "rb") as f:
+            discharge = pickle.load(f)
+
+        return discharge, cur_dset

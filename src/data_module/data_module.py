@@ -20,6 +20,7 @@ def collate_fn_padd(batch):
     max_tt_length = max(len(b["tt"]) for b in batch)
     max_xx_length = max(len(b["xx"]) for b in batch)
     max_yy_length = max(len(b["yy"]) for b in batch)
+    metadata = [b["metadata"] for b in batch]
     assert max_tt_length == max_xx_length and max_xx_length == max_yy_length
 
     padded_current = torch.tensor(
@@ -48,7 +49,7 @@ def collate_fn_padd(batch):
         np.array([np.pad(b["tt"], (0, max_tt_length - len(b["tt"]))) for b in batch])
     ).float()
 
-    return padded_current, padded_voltage, padded_xx, padded_yy, padded_tt
+    return padded_current, padded_voltage, padded_xx, padded_yy, padded_tt, metadata
 
 
 class BatteryDataModule(LightningDataModule):

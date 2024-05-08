@@ -18,22 +18,13 @@ class BaseModel(LightningModule):
         self.count = 0
 
     def training_step(self, batch, batch_idx):
-        current, voltage, capacity, x, y, t = batch
+        current, voltage, capacity, x, y, t, metadata = batch
         context = torch.cat([x.unsqueeze(2), y.unsqueeze(2), t.unsqueeze(2)], dim=2)
         output, encoder = self.forward(context, current)
         zero_mask = voltage != 0
 
         loss = self.loss_func(output[zero_mask].squeeze(), voltage[zero_mask].squeeze())
         loss = torch.sqrt(loss)
-
-        if math.isnan(loss):
-            print(voltage.shape)
-            voltage = voltage.cpu().detach().numpy()
-            print(voltage, voltage.shape)
-            print(current, current.shape)
-            plt.plot(voltage[0])
-            plt.show()
-            exit()
 
         if self.loss == "rmse":
             rmse_loss = loss
@@ -75,7 +66,7 @@ class BaseModel(LightningModule):
         self.tmp.clear()
 
     def validation_step(self, batch, batch_idx):
-        current, voltage, capacity, x, y, t = batch
+        current, voltage, capacity, x, y, t, metadata = batch
         context = torch.cat([x.unsqueeze(2), y.unsqueeze(2), t.unsqueeze(2)], dim=2)
         output, encoder = self.forward(context, current)
         zero_mask = voltage != 0
@@ -92,7 +83,7 @@ class BaseModel(LightningModule):
         self.validation_step_outputs.clear()
 
     def test_step(self, batch, batch_idx):
-        current, voltage, capacity, x, y, t = batch
+        current, voltage, capacity, x, y, t, metadata = batch
         context = torch.cat([x.unsqueeze(2), y.unsqueeze(2), t.unsqueeze(2)], dim=2)
         output, encoder = self.forward(context, current)
         zero_mask = voltage != 0
@@ -118,7 +109,6 @@ class BaseModel(LightningModule):
             v = voltage[-1, :]
             draw_trajectory(o, v, self.count)
 
-        # ====================== #
         self.log("predicted_traj", output)
         self.log("actual_traj", voltage)
 
@@ -130,10 +120,7 @@ class BaseModel(LightningModule):
         )
         return {
             "optimizer": opt,
-            "lr_scheduler": {
-                "scheduler": lr_schedulers,
-                "monitor": "train_loss"
-            }
+            "lr_scheduler": {"scheduler": lr_schedulers, "monitor": "train_loss"},
         }
 
 
